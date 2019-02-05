@@ -1,0 +1,109 @@
+apply plugin: "java"
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: "com.jfrog.artifactory"
+
+group = "it.jsql.connector.javaee"
+//version = '1.0.0' //Release
+version = '0.0.3-dev' //Dev
+
+buildscript {
+    repositories {
+        maven {
+            url "${artifactory_releaseUrl}"
+            credentials {
+                username = "${artifactory_user}"
+                password = "${artifactory_password}"
+            }
+        }
+
+    }
+    dependencies {
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4+"
+    }
+}
+
+artifactory {
+    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+    publish {
+        repository {
+            repoKey = 'libs-release-local'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+            maven = true
+        }
+        defaults {
+            publications('mavenJava')
+            publishArtifacts = true
+            properties = ['qa.level': 'basic', 'dev.team' : 'core']
+            publishPom = true
+        }
+    }
+    resolve {
+        repository {
+            repoKey = 'libs-release'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+            maven = true
+
+        }
+    }
+}
+
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+artifactoryPublish {
+    dependsOn jar
+}
+
+repositories {
+
+    mavenLocal()
+    mavenCentral()
+
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
+
+}
+
+jar {
+    baseName = 'jsql-javaee-connector'
+    version = version
+    doLast {
+        copy {
+            from "build/libs"
+            into "${deployDir}"
+            include "*.jar"
+        }
+    }
+}
+
+dependencies {
+    compile "org.it.jsql.connector.hibernate.javax.persistence:it.jsql.connector.hibernate-jpa-2.1-api:1.0.0.Final",
+            "org.it.jsql.connector.hibernate:it.jsql.connector.hibernate-entitymanager:4.3.10.Final",
+            "org.it.jsql.connector.hibernate:it.jsql.connector.hibernate-validator:5.1.3.Final",
+            'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.5.3',
+            'commons-codec:commons-codec:1.11',
+            'org.apache.httpcomponents:fluent-hc:4.5.6',
+            'com.google.code.gson:gson:2.8.5'
+
+    compile 'javax:javaee-api:7.0'
+    compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
+    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1'
+
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+

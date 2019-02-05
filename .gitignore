@@ -1,0 +1,9 @@
+/deploy/
+/out/
+/build/
+/bin/
+.idea
+.gradle
+build
+gradle
+*.iml
