@@ -1,6 +1,5 @@
 package it.jsql.connector.controller;
 
-
 import it.jsql.connector.dto.TransactionThread;
 import it.jsql.connector.service.IJSQLService;
 
@@ -11,12 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
- * ||                                                        ||
- * || entityManager.unwrap(SessionImpl.class).connection();  ||
- * ||                                                        ||
- * ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
- * <p>
  * Created by Dawid on 2016-09-13.
  * Modified by Michael on 2018-09-10.
  */
