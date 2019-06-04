@@ -1,7 +1,9 @@
 package it.jsql.connector.controller;
 
-import it.jsql.connector.dto.TransactionThread;
-import it.jsql.connector.service.IJSQLService;
+import it.jsql.connector.dto.JSQLConfig;
+import it.jsql.connector.dto.JSQLResponse;
+import it.jsql.connector.exceptions.JSQLException;
+import it.jsql.connector.service.JSQLConnector;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
@@ -13,110 +15,115 @@ import java.util.Map;
  * Created by Dawid on 2016-09-13.
  * Modified by Michael on 2018-09-10.
  */
-@Path("/jsql")
+@Path("/api/jsql")
 public abstract class JSQLController {
 
-    public JSQLController() {
+    public abstract JSQLConfig getConfig();
+
+    private static final String API_URL = "https://provider.jsql.it/api/jsql";
+
+    public String getProviderUrl() {
+        return API_URL;
     }
 
-    public abstract IJSQLService getJsqlService();
-
-    private IJSQLService ijsqlService = null;
-
-    private IJSQLService getJsqlServiceSingleton() {
-
-        if (this.ijsqlService == null) {
-            this.ijsqlService = this.getJsqlService();
-        }
-
-        return this.ijsqlService;
-
-    }
+    public static final String TRANSACTION_ID = "txid";
 
     @Path("/select")
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public List<Map<String, Object>> select(Map<String, Object> data,
-                                            @Context HttpServletResponse response,
-                                            @DefaultValue("false") @HeaderParam("TX") Boolean isTransactional,
-                                            @HeaderParam("TXID") String txid) {
+    public List select(Map<String, Object> data,
+                       @Context HttpServletResponse response,
+                       @DefaultValue("") @HeaderParam(TRANSACTION_ID) String transactionId) throws JSQLException {
 
-        TransactionThread transactionThread = new TransactionThread(data, isTransactional, txid);
+        JSQLResponse jsqlResponse = JSQLConnector.callSelect(transactionId, this.getProviderUrl(), data, this.getConfig());
 
-        this.getJsqlServiceSingleton().select(transactionThread);
-
-        if (isTransactional) {
-
-            response.addHeader("TXID", transactionThread.getTransactionId());
-
+        if (jsqlResponse.transactionId != null) {
+            response.setHeader(TRANSACTION_ID, jsqlResponse.transactionId);
         }
 
-        return transactionThread.getResponse();
+        return jsqlResponse.response;
+
     }
 
     @Path("/delete")
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public List<Map<String, Object>> delete(Map<String, Object> data,
-                                            @Context HttpServletResponse response,
-                                            @HeaderParam("TX") Boolean isTransactional,
-                                            @HeaderParam("TXID") String txid) {
-        TransactionThread transactionThread = new TransactionThread(data, isTransactional, txid);
+    public List delete(Map<String, Object> data,
+                       @Context HttpServletResponse response,
+                       @DefaultValue("") @HeaderParam(TRANSACTION_ID) String transactionId) throws JSQLException {
 
-        this.getJsqlServiceSingleton().delete(transactionThread);
+        JSQLResponse jsqlResponse = JSQLConnector.callDelete(transactionId, this.getProviderUrl(), data, this.getConfig());
 
-        if (isTransactional) {
-
-            response.addHeader("TXID", transactionThread.getTransactionId());
-
+        if (jsqlResponse.transactionId != null) {
+            response.setHeader(TRANSACTION_ID, jsqlResponse.transactionId);
         }
 
-        return transactionThread.getResponse();
+        return jsqlResponse.response;
+
     }
 
     @Path("/update")
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public List<Map<String, Object>> update(Map<String, Object> data,
-                                            @Context HttpServletResponse response,
-                                            @HeaderParam("TX") Boolean isTransactional,
-                                            @HeaderParam("TXID") String txid) {
-        TransactionThread transactionThread = new TransactionThread(data, isTransactional, txid);
+    public List update(Map<String, Object> data,
+                       @Context HttpServletResponse response,
+                       @DefaultValue("") @HeaderParam(TRANSACTION_ID) String transactionId) throws JSQLException {
 
-        this.getJsqlServiceSingleton().update(transactionThread);
+        JSQLResponse jsqlResponse = JSQLConnector.callUpdate(transactionId, this.getProviderUrl(), data, this.getConfig());
 
-        if (isTransactional) {
-
-            response.addHeader("TXID", transactionThread.getTransactionId());
-
+        if (jsqlResponse.transactionId != null) {
+            response.setHeader(TRANSACTION_ID, jsqlResponse.transactionId);
         }
 
-        return transactionThread.getResponse();
+        return jsqlResponse.response;
+
     }
 
     @Path("/insert")
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public List<Map<String, Object>> insert(Map<String, Object> data,
-                                            @Context HttpServletResponse response,
-                                            @HeaderParam("TX") Boolean isTransactional,
-                                            @HeaderParam("TXID") String txid) {
-        TransactionThread transactionThread = new TransactionThread(data, isTransactional, txid);
+    public List insert(Map<String, Object> data,
+                       @Context HttpServletResponse response,
+                       @DefaultValue("") @HeaderParam(TRANSACTION_ID) String transactionId) throws JSQLException {
 
-        this.getJsqlServiceSingleton().insert(transactionThread);
+        JSQLResponse jsqlResponse = JSQLConnector.callInsert(transactionId, this.getProviderUrl(), data, this.getConfig());
 
-        if (isTransactional) {
-
-            response.addHeader("TXID", transactionThread.getTransactionId());
-
+        if (jsqlResponse.transactionId != null) {
+            response.setHeader(TRANSACTION_ID, jsqlResponse.transactionId);
         }
 
-        return transactionThread.getResponse();
+        return jsqlResponse.response;
+
     }
 
+    @Path("/rollback")
+    @POST
+    @Produces("application/json")
+    @Consumes("application/json")
+    public List rollback(@Context HttpServletResponse response,
+                         @DefaultValue("") @HeaderParam(TRANSACTION_ID) String transactionId) throws JSQLException {
+
+
+        JSQLResponse jsqlResponse = JSQLConnector.callRollback(this.getProviderUrl(), transactionId, this.getConfig());
+        return jsqlResponse.response;
+
+    }
+
+    @Path("/commit")
+    @POST
+    @Produces("application/json")
+    @Consumes("application/json")
+    public List commit(@Context HttpServletResponse response,
+                         @DefaultValue("") @HeaderParam(TRANSACTION_ID) String transactionId) throws JSQLException {
+
+
+        JSQLResponse jsqlResponse = JSQLConnector.callCommit(this.getProviderUrl(), transactionId, this.getConfig());
+        return jsqlResponse.response;
+
+    }
 
 }
